@@ -1,0 +1,47 @@
+#! /usr/bin/env lua
+
+require('pl.app').require_here()  -- lets us 'require' our own modules.
+
+local IM = require('imagemagick')
+
+------------------------------------------------------------------------------
+
+-- Note: we don't use pl.lapp() here because of the following bugs:
+-- - https://github.com/stevedonovan/Penlight/issues/247
+-- - https://github.com/stevedonovan/Penlight/issues/248
+if not arg[3] then
+  print [[
+Joins two images using a point they have in common.
+
+Arguments:
+
+  <img1_src> (string)  The pathname of the 1st image to join.
+  <img2_src> (string)  The pathname of the 2nd image to join.
+  <img_trg>  (string)  The pathname of the new joined image to create.
+]]
+  os.exit()
+end
+
+------------------------------------------------------------------------------
+
+local args = {
+  img1_src = arg[1],
+  img2_src = arg[2],
+  img_trg = arg[3],
+}
+
+local data_file = IM.utils.gen_tmp_file(".lua")
+
+------------------------------------------------------------------------------
+
+local tip = ([[
+Select <b>one</b> point in each image, on which to join them, then type <b>c</b> to see the joined image (you'll need to have the <b>feh</b> image browser installed to see it).
+
+You may then return here and adjust the points if desired (or just exit to finish).
+]]):gsub("\n", "|")
+
+local CMD_SCANJOIN_DO = IM.utils.prepare_command("{{BASEDIR}}/join-by-point-do %q %q; feh -F %q",
+  data_file, args.img_trg, args.img_trg)
+
+IM.utils.run_command("pointsy --tip %q --adjacent --output %q --cmd '%s' %q %q",
+  tip, data_file, CMD_SCANJOIN_DO, args.img1_src, args.img2_src)

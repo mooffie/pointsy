@@ -1,0 +1,48 @@
+#! /usr/bin/env lua
+
+require('pl.app').require_here()  -- lets us 'require' our own modules.
+
+local IM = require('imagemagick')
+
+------------------------------------------------------------------------------
+
+if not arg[1] then
+  print [[
+Balances images. If you scanner produces reddish or bluish images, you
+can fix them by selecting a rectangle considered "white".
+
+Syntax:
+
+  balance <img-file> ...
+
+WARNING: files will be overwritten! make a backup!
+]]
+  os.exit()
+end
+
+------------------------------------------------------------------------------
+
+local data_file = IM.utils.gen_tmp_file(".lua")
+local tmp_img = IM.utils.gen_tmp_file()
+
+local tip = ([[
+Select <b>two</b> points to form a rectangle considered 'white' region, then type <b>c</b> to see the balanced image (you'll need to have the <b>feh</b> image browser installed to see it).
+
+You may then return here and adjust the rectangle and try again, or press ENTER to accept the result.
+
+<b>Danger:</b> the image will be overwritten.
+]]):gsub("\n", "|")
+
+for _, src in ipairs(arg) do
+
+  -- A command to carry out the balancing, and to display the image afterwards.
+  local CMD_BALANCE_DO = IM.utils.prepare_command("{{BASEDIR}}/balance-do %q %q; feh -F %q",
+    data_file, tmp_img, tmp_img)
+
+  if IM.utils.run_command("pointsy --tip %q --output %q --cmd '%s' %q",
+                            tip, data_file, CMD_BALANCE_DO, src) then
+    -- overwrite the file.
+    IM.convert(tmp_img, src)
+  end
+
+end

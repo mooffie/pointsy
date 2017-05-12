@@ -1,0 +1,39 @@
+#! /usr/bin/env lua
+
+require('pl.app').require_here()  -- lets us 'require' our own modules.
+
+local IM = require('imagemagick')
+
+------------------------------------------------------------------------------
+
+if not arg[1] then
+  print [[
+Crops images.
+
+Syntax:
+
+  crop <img-file> ...
+
+WARNING: files will be overwritten! make a backup!
+]]
+  os.exit()
+end
+
+------------------------------------------------------------------------------
+
+local data_file = IM.utils.gen_tmp_file(".lua")
+
+local tip = "Select <b>two</b> points to form a rectangle, and press <b>ENTER</b> to crop the image. <b>Danger:</b> the image will be overwritten."
+
+for _, src in ipairs(arg) do
+
+  if IM.utils.run_command("pointsy --fit-height --tip %q --output %q %q",
+                            tip, data_file, src) then
+
+    local trg = src  -- we overwrite the file.
+    IM.utils.run_command("{{BASEDIR}}/crop-do %q %q",
+                            data_file, trg)
+
+  end
+
+end

@@ -1,0 +1,240 @@
+#! /usr/bin/env lua
+
+local lgi = require 'lgi'
+local Gtk = lgi.Gtk
+local Gdk = lgi.Gdk
+local lapp = require 'pl.lapp'
+local pretty = require 'pl.pretty'
+
+require('pl.app').require_here()  -- lets us 'require' our own modules.
+
+local utils = require 'utils'
+require 'pointsycanvas'
+local Canvas = lgi.Pointsy.Canvas  -- point to our Canvas widget.
+
+------------------------------------------------------------------------------
+
+local usage = [[
+This app displays an image (or two, side by side) in a GUI and lets the
+user pick points in the image with the mouse.
+
+When you exit the app, the points are written out (in Lua syntax) to the file
+you specified with '--output', or to stdout if you haven't.
+
+Synopses:
+
+   $ pointsy [options] <image-pathname> [image-pathname]
+
+Possible options:
+
+  --output (default STDOUT)    Where to write the data.
+  --cmd    (optional string)   Shell command to run inside the app, when pressing 'c'.
+  --adjacent                   Lay out the two images adjacent to one another.
+  --fit-height                 Fit image to pane's height.
+  --fit-width                  Fit image to pane's width.
+  --tip    (optional string)   Text to display at top. You may use Pango markup (<b>, <u>, etc), and "|" for newline.
+
+Examples:
+
+  $ pointsy a.png
+
+  $ pointsy  --output points.data  a.png  b.png
+]]
+
+------------------------------------------------------------------------------
+--
+-- Help
+--
+
+local help = [[
+<u>Movement:</u>
+
+Mouse <b>drag</b>: pan around (display gets updated when the mouse rests).
+Mouse <b>wheel</b>: zoom.
+
+<u>Points:</u>
+
+<b>Ctrl+click</b>: create point.
+<b>Space</b>: move to next point.
+<b>Del</b> or <b>BS</b>: delete current point.
+<b>Arrows</b>: move point (use with <b>Ctrl</b> for bigger moves).
+<b>p</b>: toggle between drawing a path between the dots, or horizontal/vertical rulers.
+
+<u>View:</u>
+
+<b>v</b>: toggle between horizontal/vertical layout.
+<b>w</b> or <b>W</b>: fit image to pane's width.
+<b>h</b> or <b>H</b>: fit image to pane's height.
+<b>a</b>: arrange images so their bottom/top sides (or right/left sides) are adjacent. Very useful when you need to stitch two images. See also '--adjacent'.
+
+<u>Other:</u>
+
+<b>?</b>: show help.
+<b>c</b>: run shell command specified with '--cmd'.
+
+<u>Exiting:</u>
+
+<b>ENTER</b>: Writes out the points data and exists. '0' exit code.
+<b>ESC</b>: Exits. '1' exit code.
+]]
+
+------------------------------------------------------------------------------
+--
+-- Process command-line.
+--
+
+local args = lapp(usage)
+
+if not args[1] then
+  lapp.quit("Invocation error: You must provide at least one image file.")
+else
+  -- Verify that all files exist.
+  for i = 1, #args do
+    lapp.open(args[i])
+  end
+end
+
+------------------------------------------------------------------------------
+
+local exit_code = 0
+local default_tip = "Pointsy, an app for selecting points in images with the mouse. Type <b>?</b> for help."
+
+local function main()
+
+  local w = Gtk.Window {
+    title = "Pointsy",
+    default_width = 640, default_height = 480,
+    Gtk.Box {
+      orientation = "VERTICAL",
+      Gtk.Label {
+        label = (args.tip or default_tip):gsub("|", "\n"),
+        use_markup = true,
+        wrap = true,
+      },
+      Gtk.Paned {
+        id = "paned",
+        expand = true,
+        orientation = "VERTICAL",
+        wide_handle = true,
+        { Canvas { id = "cvs1" }, resize = true, shrink = true },
+        { Canvas { id = "cvs2" }, resize = true, shrink = true }
+      },
+    }
+  }
+
+  local cvs1 = w.child.cvs1
+  local cvs2 = w.child.cvs2
+  local paned = w.child.paned
+
+  cvs1:load_image(args[1])
+  cvs2:load_image(args[2])
+
+  if not args[2] then  -- If only one image is used, don't waste space.
+    paned:remove(cvs2)
+  end
+
+  local function serialize()
+    local all_data = {
+      cvs1:get_data(), cvs2:get_data()
+    }
+    local f = (args.output == "STDOUT" and io.stdout or assert(io.open(args.output, "w")))
+    f:write("return ", pretty.write(all_data), "\n")
+    f:flush()
+  end
+
+  local function exit_ok()
+    print "OK"
+    serialize()
+    exit_code = 0
+    Gtk.main_quit()
+  end
+
+  local function exit_failure()
+    print "FAILURE"
+    exit_code = 1
+    Gtk.main_quit()
+  end
+
+  local function run_cmd()
+    if args.cmd then
+      serialize()
+      os.execute(args.cmd)
+    else
+      utils.message_box(w, "Nothing to do. You didn't provide a command with the '--cmd' option.")
+    end
+  end
+
+  local function make_adjacent()
+    local padding = 50
+
+    if paned.orientation == 'VERTICAL' then
+
+      cvs1:fit_width()
+      cvs1:anchor_south()
+      cvs1:shift(0, padding)
+
+      cvs2:fit_width()
+      cvs2:anchor_north()
+      cvs2:shift(0, -padding)
+
+    else
+
+      cvs1:fit_height()
+      cvs1:anchor_east()
+      cvs1:shift(padding, 0)
+
+      cvs2:fit_height()
+      cvs2:anchor_west()
+      cvs2:shift(-padding, 0)
+
+    end
+
+    cvs1:queue_draw()
+    cvs2:queue_draw()
+  end
+
+  function w:on_key_press_event(ev)
+    local acts = {
+      [Gdk.KEY_v] = function()
+        paned.orientation = (paned.orientation == 'HORIZONTAL' and 'VERTICAL' or 'HORIZONTAL')
+      end,
+      [Gdk.KEY_question] = function()
+        utils.message_box(w, "Help", help)
+      end,
+      [Gdk.KEY_Return] = exit_ok,
+      [Gdk.KEY_KP_Enter] = exit_ok,
+      [Gdk.KEY_Escape] = exit_failure,
+      [Gdk.KEY_c] = run_cmd,
+      [Gdk.KEY_a] = make_adjacent,
+    }
+    if acts[ev.keyval] then
+      acts[ev.keyval](self)
+    end
+  end
+
+  w:show_all()
+  w.on_destroy = exit_failure
+
+  utils.on_first_run(cvs1, function()
+    if args.adjacent then
+      make_adjacent()
+    end
+    if args.fit_height then
+      cvs1:fit_height()
+      cvs2:fit_height()
+      cvs1:queue_draw()
+      cvs2:queue_draw()
+    end
+    if args.fit_width then
+      cvs1:fit_width()
+      cvs2:fit_width()
+      cvs1:queue_draw()
+      cvs2:queue_draw()
+    end
+  end)
+
+  Gtk.main()
+end
+
+main()
+os.exit(exit_code)

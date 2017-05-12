@@ -1,0 +1,52 @@
+#! /usr/bin/env lua
+
+require('pl.app').require_here()  -- lets us 'require' our own modules.
+
+local IM = require('imagemagick')
+
+------------------------------------------------------------------------------
+
+if not arg[1] then
+  print [[
+Levels images.
+
+Syntax:
+
+  levels <img-file> ...
+
+WARNING: files will be overwritten! make a backup!
+]]
+  os.exit()
+end
+
+------------------------------------------------------------------------------
+
+local data_file = IM.utils.gen_tmp_file(".lua")
+local tmp_img = IM.utils.gen_tmp_file()
+local border_size = 10
+
+------------------------------------------------------------------------------
+
+local tip = ([[
+Select <b>one or two</b> points in the histogram, for the 'black' and 'white' values.
+Only their 'x' coordinates matter.
+If you select just one point, it stands for the white (black will be 0).
+
+Then type <b>c</b> to do the processing -- You'll see the new mage in a window (you have to have <b>feh</b> installed); you can return to this screen and alter your points.
+Press <b>ENTER</b> to approve the action (<b>Danger:</b> the image will be overwritten).
+]]):gsub("\n", "|")
+
+for _, src in ipairs(arg) do
+
+  local histogram = IM.add_border(IM.create_histogram(src, true, true), border_size, 'cyan')
+
+  -- A command to carry out the leveling, and to display the image afterwards.
+  local CMD_LEVELS_DO = IM.utils.prepare_command("{{BASEDIR}}/levels-do --border-size %d %q %q %q; feh -F %q",
+    border_size, data_file, src, tmp_img, tmp_img)
+
+  if IM.utils.run_command("pointsy --tip %q --output %q --cmd '%s' --fit-height %q",
+                            tip, data_file,  CMD_LEVELS_DO, histogram) then
+    IM.convert(tmp_img, src)  -- overwrite the source!
+  end
+
+end
