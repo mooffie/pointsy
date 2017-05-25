@@ -33,6 +33,7 @@ Possible options:
   --fit-height                 Fit image to pane's height.
   --fit-width                  Fit image to pane's width.
   --tip    (optional string)   Text to display at top. You may use Pango markup (<b>, <u>, etc), and "|" for newline.
+  --points-input (optional string) Load points from a file (e.g., previously written to with --output).
 
 Examples:
 
@@ -128,6 +129,12 @@ local function main()
 
   cvs1:load_image(args[1])
   cvs2:load_image(args[2])
+
+  if args.points_input then
+    local data = dofile(args.points_input)
+    cvs1:set_points(data[1].points)
+    cvs2:set_points(data[2].points)
+  end
 
   if not args[2] then  -- If only one image is used, don't waste space.
     paned:remove(cvs2)

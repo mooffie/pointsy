@@ -403,6 +403,12 @@ function Pointsy.Canvas:get_data()
 
 end
 
+function Pointsy.Canvas:set_points(new_points)
+  local g = self.priv
+  g.points = new_points
+  g.current_point = #g.points
+end
+
 ------------------------------------------------------------------------------
 --
 -- Construction.
