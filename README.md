@@ -19,7 +19,7 @@ Examples
 Pointsy is provided with a few example scripts (which all use
 ImageMagick's `convert`):
 
-- **crop**: Crops an image.
+- **crop**: Crops an image. (There's also the **crop-from-points** script.)
 
 - **join-on-point**: Stitches two images based on a point they have in
   common (e.g., useful for joining two halves of a big newspaper page
@@ -32,7 +32,7 @@ ImageMagick's `convert`):
   tool lets you fix them by marking a rectangle that's supposed to be white
   (or grey).
 
-When dealing with many images these scripts are easier to work with than
+When dealing with many images, these scripts are easier to work with than
 a full-blown image editor (as GIMP or Photoshop) because you doesn't need
 to mess with menus and dialog boxes. You just need to select a couple of
 points, press Enter, and you're done.

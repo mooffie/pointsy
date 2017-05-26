@@ -1,0 +1,70 @@
+#! /usr/bin/env lua
+
+------------------------------------------------------------------------------
+
+if not arg[1] then
+  print [[
+Generates a cropping script, 'crop-from-points.sh', from a points data file.
+
+Syntax:
+
+  crop <data-file> ...
+
+(data-file is one previously saved with 'pointsy --output <data-file> ...'.)
+]]
+  os.exit()
+end
+
+------------------------------------------------------------------------------
+
+local data_file = arg[1]
+
+local scr_name = "crop-from-points.sh"
+
+local scr = [[
+#!/bin/sh -x
+
+[ DATA_FILE -nt $0 ] && {
+  echo "ERROR: Data updated. You need to re-generate this script."
+  exit
+}
+
+[ -d cropped ] || mkdir cropped
+
+for f in *.jpg; do
+  convert "$f" -crop COORDS +repage "cropped/$f"
+done
+
+# Tip: do `feh --keep-zoom-vp cropped/*.jpg` (space/bkspc, pgup/dn) to quickly browse the result.
+# (Inside feh, hit 'k' if you forgot '--keep-zoom-vp'.)
+]]
+
+------------------------------------------------------------------------------
+
+local function get_crop_coords(data)
+  local pts = data[1].points
+  local x1, y1 = pts[1].x, pts[1].y
+  local x2, y2 = pts[2].x, pts[2].y
+
+  if x1 > x2 then
+    x1, x2 = x2, x1
+  end
+  if y1 > y2 then
+    y1, y2 = y2, y1
+  end
+
+  return ("%dx%d+%d+%d"):format(x2 - x1, y2 - y1, x1, y1)
+end
+
+------------------------------------------------------------------------------
+
+local data = dofile(data_file)
+local coords = get_crop_coords(data)
+
+local f = assert(io.open(scr_name, 'w'))
+f:write((scr:gsub("[A-Z_]+", {
+  COORDS = coords,
+  DATA_FILE = data_file,
+})))
+f:close()
+os.execute("chmod +x " .. scr_name)
