@@ -145,7 +145,7 @@ local function main()
 
   local function serialize()
     local all_data = {
-      cvs1:get_data(), cvs2:get_data()
+      cvs1:get_exportable_data(), cvs2:get_exportable_data()
     }
     local f = (args.output == "STDOUT" and io.stdout or assert(io.open(args.output, "w")))
     f:write("return ", pretty.write(all_data), "\n")
@@ -174,6 +174,11 @@ local function main()
     end
   end
 
+  local function redraw_all()
+    cvs1:queue_draw()
+    cvs2:queue_draw()
+  end
+
   local function make_adjacent()
     local padding = 50
 
@@ -199,8 +204,7 @@ local function main()
 
     end
 
-    cvs1:queue_draw()
-    cvs2:queue_draw()
+    redraw_all()
   end
 
   function w:on_key_press_event(ev)
@@ -218,16 +222,14 @@ local function main()
       [Gdk.KEY_a] = make_adjacent,
       [Gdk.KEY_X] = function()
         cvs1:set_state(cvs2:set_state(cvs1:get_state()))
-        cvs1:queue_draw()
-        cvs2:queue_draw()
+        redraw_all()
       end,
       [Gdk.KEY_x] = function()
         local focused = cvs2.is_focus and cvs2 or cvs1
         local unfocused = ({[cvs1]=cvs2,[cvs2]=cvs1})[focused]
         unfocused:copy_viewport(focused)
         cvs1:set_state(cvs2:set_state(cvs1:get_state()))
-        cvs1:queue_draw()
-        cvs2:queue_draw()
+        redraw_all()
       end,
     }
     if acts[ev.keyval] then
@@ -245,14 +247,12 @@ local function main()
     if args.fit_height then
       cvs1:fit_height()
       cvs2:fit_height()
-      cvs1:queue_draw()
-      cvs2:queue_draw()
+      redraw_all()
     end
     if args.fit_width then
       cvs1:fit_width()
       cvs2:fit_width()
-      cvs1:queue_draw()
-      cvs2:queue_draw()
+      redraw_all()
     end
   end)
 

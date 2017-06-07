@@ -389,7 +389,7 @@ end
 -- Data.
 --
 
-function Pointsy.Canvas:get_data()
+function Pointsy.Canvas:get_exportable_data()
 
   local g = self.priv
 
