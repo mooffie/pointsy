@@ -68,6 +68,9 @@ Mouse <b>wheel</b>: zoom.
 <b>h</b> or <b>H</b>: fit image to pane's height.
 <b>a</b>: arrange images so their bottom/top sides (or right/left sides) are adjacent. Very useful when you need to stitch two images. See also '--adjacent'.
 
+<b>x</b>: Switch the two images, making their viewport the same. Useful when you want to visually compare two variants of the same image.
+<b>X</b> (uppercase 'x'): Switch the two images (but don't alter their viewports).
+
 <u>Other:</u>
 
 <b>?</b>: show help.
@@ -213,6 +216,19 @@ local function main()
       [Gdk.KEY_Escape] = exit_failure,
       [Gdk.KEY_c] = run_cmd,
       [Gdk.KEY_a] = make_adjacent,
+      [Gdk.KEY_X] = function()
+        cvs1:set_state(cvs2:set_state(cvs1:get_state()))
+        cvs1:queue_draw()
+        cvs2:queue_draw()
+      end,
+      [Gdk.KEY_x] = function()
+        local focused = cvs2.is_focus and cvs2 or cvs1
+        local unfocused = ({[cvs1]=cvs2,[cvs2]=cvs1})[focused]
+        unfocused:copy_viewport(focused)
+        cvs1:set_state(cvs2:set_state(cvs1:get_state()))
+        cvs1:queue_draw()
+        cvs2:queue_draw()
+      end,
     }
     if acts[ev.keyval] then
       acts[ev.keyval](self)

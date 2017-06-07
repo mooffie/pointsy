@@ -3,6 +3,7 @@ local lgi = require 'lgi'
 local Gtk = lgi.Gtk
 local Gdk = lgi.Gdk
 local GdkPixbuf = lgi.GdkPixbuf
+local tablex = require 'pl.tablex'
 
 local utils = require 'utils'  -- our own module.
 
@@ -17,7 +18,7 @@ Pointsy:class('Canvas', Gtk.DrawingArea)
 local slow_computer = true
 
 local DEFAULTS = {
-  -- Scaling and panning
+  -- The viewport (scaling and panning)
   scale = 1.0,
   xoffs = 0,
   yoffs = 0,
@@ -407,6 +408,24 @@ function Pointsy.Canvas:set_points(new_points)
   local g = self.priv
   g.points = new_points
   g.current_point = #g.points
+end
+
+function Pointsy.Canvas:get_state()
+  return tablex.copy(self.priv)
+end
+
+function Pointsy.Canvas:set_state(new_state)
+  local old_state = self:get_state()
+  tablex.clear(self.priv)
+  tablex.update(self.priv, new_state)
+  return old_state
+end
+
+function Pointsy.Canvas:copy_viewport(other_canvas)
+  local g, go = self.priv, other_canvas.priv
+  g.scale = go.scale
+  g.xoffs = go.xoffs
+  g.yoffs = go.yoffs
 end
 
 ------------------------------------------------------------------------------
