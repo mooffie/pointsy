@@ -55,11 +55,12 @@ Mouse <b>wheel</b>: zoom.
 
 <u>Points:</u>
 
-<b>Ctrl+click</b>: create point.
+<b>Ctrl</b> + mouse <b>click</b>: create point.
 <b>Space</b>: move to next point.
 <b>Del</b> or <b>BS</b>: delete current point.
 <b>Arrows</b>: move point (use with <b>Ctrl</b> for bigger moves).
-<b>p</b>: toggle between drawing a path between the dots, or horizontal/vertical rulers.
+<b>Shift</b> + mouse <b>drag</b>: shift the points.
+<b>p</b>: toggle between drawing a path between the points, or horizontal/vertical rulers.
 
 <u>View:</u>
 

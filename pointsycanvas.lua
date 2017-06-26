@@ -121,14 +121,27 @@ local function on_scroll_event(self, ev)
   self:queue_draw()
 end
 
+function shift_points(self, dx, dy)
+  for _, pt in ipairs(self.priv.points) do
+    pt.x = pt.x + dx
+    pt.y = pt.y + dy
+  end
+end
+
 local function on_motion_notify_event(self, ev)
   local g = self.priv
 
   local dx = (ev.x - g.drag_start_x) / g.scale
   local dy = (ev.y - g.drag_start_y) / g.scale
 
-  g.xoffs = g.xoffs + dx
-  g.yoffs = g.yoffs + dy
+  if ev.state.SHIFT_MASK then
+    -- Shift the points.
+    shift_points(self, dx, dy)
+  else
+    -- Shift the image.
+    g.xoffs = g.xoffs + dx
+    g.yoffs = g.yoffs + dy
+  end
 
   -- For next motion:
   g.drag_start_x = ev.x
