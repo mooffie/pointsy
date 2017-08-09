@@ -106,6 +106,13 @@ function M.crop(img, x1, y1, x2, y2)
   return output
 end
 
+function M.rotate(img, angle)
+  local output = gen_tmp_file()
+  run_command("convert %q -rotate %g %q",
+             img, angle, output)
+  return output
+end
+
 function M.convert(img1, img2)
   local same_type = (get_ext(img1) == get_ext(img2))
   run_command((same_type and "cp" or "convert") .. " %q %q",
