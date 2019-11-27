@@ -22,7 +22,9 @@ local data_file = arg[1]
 local scr_name = "crop-from-points.sh"
 
 local scr = [[
-#!/bin/sh -x
+#!/bin/sh
+
+set -x
 
 [ DATA_FILE -nt $0 ] && {
   echo "ERROR: Data updated. You need to re-generate this script."
@@ -31,9 +33,15 @@ local scr = [[
 
 [ -d cropped ] || mkdir cropped
 
+MORE_PRE=    # Add your customizations here.
+MORE_POST=   # Add your customizations here.
+
 for f in *.jpg; do
-  convert "$f" -crop COORDS +repage "cropped/$f"
+  convert "$f" $MORE_PRE -rotate .0 -crop COORDS +repage $MORE_POST "cropped/$f"
 done
+exit
+
+# The '-rotate .0' and 'exit' only make sense when doing copy/paste/modify.
 
 # Tip: do `feh --keep-zoom-vp cropped/*.jpg` (space/bkspc, pgup/dn) to quickly browse the result.
 # (Inside feh, hit 'k' if you forgot '--keep-zoom-vp'.)
